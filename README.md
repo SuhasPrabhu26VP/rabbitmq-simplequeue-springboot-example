@@ -1,0 +1,1 @@
+# rabbitmq-simplequeue-springboot-example
