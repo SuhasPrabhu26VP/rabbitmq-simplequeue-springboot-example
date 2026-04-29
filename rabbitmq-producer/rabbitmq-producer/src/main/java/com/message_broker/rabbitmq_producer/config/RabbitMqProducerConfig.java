@@ -4,7 +4,13 @@ package com.message_broker.rabbitmq_producer.config;
 
 
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.*;
+import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
+import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +25,8 @@ import java.util.stream.Stream;
 
 @Configuration
 public class RabbitMqProducerConfig {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(RabbitMqProducerConfig.class);
 
     @Value("${spring.rabbitmq.queueName}")
     private String queueName;
@@ -47,6 +55,41 @@ public class RabbitMqProducerConfig {
     @Bean
     public Binding binding(){
         return BindingBuilder.bind(queue()).to(exchange()).with(routingKey);
+    }
+
+
+    @Bean
+    public Queue mainQueue(){
+       return QueueBuilder.durable("mainQueue").withArgument("x-dead-letter-exchange", "dlqExchange")
+                .withArgument("x-dead-letter-routing-key", "deadLetterQueueRoutingKey").build();
+    }
+
+
+    @Bean
+    public DirectExchange mainQueueExchange(){
+        return new DirectExchange("mainQueueExchange");
+    }
+
+
+    @Bean
+    public Binding mainQueueExchangeBinding(){
+        return BindingBuilder.bind(queue()).to(exchange()).with("mainQueueExchangeRoutingKey");
+    }
+
+    @Bean
+    public Queue DLQ(){
+        return QueueBuilder.durable("deadLetterQueueForMainQueue").build();
+    }
+
+
+    @Bean
+    public DirectExchange DLQExchange(){
+        return new DirectExchange("dlqExchange");
+    }
+
+    @Bean
+    public Binding DLQBinding(){
+        return BindingBuilder.bind(DLQ()).to(DLQExchange()).with("deadLetterQueueRoutingKey");
     }
 
     @Bean
@@ -151,5 +194,59 @@ public class RabbitMqProducerConfig {
                 props.getDurable(),
                 props.getExclusive(),
                 props.getAutoDelete());
+    }
+
+
+    /**
+     *
+     * Producer confirm with broker protocol
+     * */
+    @Bean
+    public ConnectionFactory connectionFactory() {
+        CachingConnectionFactory factory = new CachingConnectionFactory("localhost");
+        factory.setPublisherConfirmType(CachingConnectionFactory.ConfirmType.CORRELATED);
+        factory.setPublisherReturns(true);
+
+        return factory;
+    }
+
+    @Bean
+    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
+        RabbitTemplate template = new RabbitTemplate(connectionFactory);
+        template.setMessageConverter(converter());
+        template.setMandatory(true);
+        // mandatory=true is required for ReturnsCallback to fire
+
+        // fires when broker confirms or nacks
+        /**
+         *
+         * UnComment below for global callbacks
+         * */
+        /*template.setConfirmCallback((correlationData, ack, cause) -> {
+            if (correlationData == null) {
+                // method sent without CorrelationData — no id to track
+                LOGGER.warn("Confirm received but no correlationData attached");
+                return;
+            }
+            if (ack) {
+                LOGGER.info("Message confirmed by broker, id: {}",
+                        correlationData.getId());
+            } else {
+                LOGGER.error("Message nacked by broker, id: {}, cause: {}",
+                        correlationData.getId(), cause);
+                // retry or save to outbox
+            }
+        });*/
+
+        // fires when message reaches exchange but no queue matched
+        template.setReturnsCallback(returned -> {
+            LOGGER.error("Message returned, exchange: {}, routingKey: {}, reason: {}",
+                    returned.getExchange(),
+                    returned.getRoutingKey(),
+                    returned.getReplyText());
+            // handle unroutable message
+        });
+
+        return template;
     }
 }
