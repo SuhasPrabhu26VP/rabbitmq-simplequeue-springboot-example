@@ -1,22 +1,30 @@
 package com.message_broker.rabbitmq_consumer.config;
 
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.AcknowledgeMode;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.rabbit.config.RetryInterceptorBuilder;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.retry.RejectAndDontRequeueRecoverer;
+import org.springframework.amqp.rabbit.retry.RepublishMessageRecoverer;
 import org.springframework.amqp.support.converter.DefaultJacksonJavaTypeMapper;
 import org.springframework.amqp.support.converter.JacksonJavaTypeMapper;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class RabbitMqConsumerConfig {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(RabbitMqConsumerConfig.class);
+
     @Value("${spring.rabbitmq.queueName}")
     private String queueName;
 
@@ -24,6 +32,9 @@ public class RabbitMqConsumerConfig {
     public Queue queue(){
         return new Queue(queueName);
     }
+
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
 
     @Bean
     public SimpleRabbitListenerContainerFactory listenerContainerFactory(ConnectionFactory connectionFactory){
@@ -46,6 +57,25 @@ public class RabbitMqConsumerConfig {
                 .maxRetries(5)
                 .backOffOptions(1000, 2.0, 10000) // initialInterval, multiplier, maxInterval
                 .recoverer(new RejectAndDontRequeueRecoverer())
+                .build());
+        return factory;
+    }
+
+
+
+    @Bean
+    public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactoryWithStateFulRetry(ConnectionFactory connectionFactory) {
+        SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+        factory.setConnectionFactory(connectionFactory);
+        factory.setErrorHandler(throwable ->
+                LOGGER.error("Consumer error: {}", throwable.getMessage()));
+        factory.setDefaultRequeueRejected(false);// safety net if there is no retry configured and need to requeue the message if exception occurs from consumer
+        factory.setAdviceChain(RetryInterceptorBuilder.stateful()
+                .maxRetries(5)
+                .messageKeyGenerator(message -> message.getMessageProperties().getMessageId()) //using message id to track during stateful only works when the producer sends message id if not it breaks
+                .backOffOptions(1000, 2.0, 10000) // initialInterval, multiplier, maxInterval
+                .recoverer(new RepublishMessageRecoverer(
+                        rabbitTemplate, "dlq_exchange", "routingkeyForDLQ")) // recover and redirect the message to DLQ
                 .build());
         return factory;
     }
