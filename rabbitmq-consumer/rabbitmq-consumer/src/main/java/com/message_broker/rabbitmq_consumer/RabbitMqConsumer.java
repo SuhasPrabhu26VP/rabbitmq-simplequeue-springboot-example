@@ -21,6 +21,19 @@ public class RabbitMqConsumer {
     private static final Logger LOGGER = LoggerFactory.getLogger(RabbitMqConsumer.class);
 
 
+    //testing quorum queue logic
+    @RabbitListener(queues = {"quorumQueueTest"})
+    public void consumeFromQuorumQueue(UserDetailsDTO dto, Message message) throws Exception {
+        LOGGER.info(String.format("Received message -> %s", dto));
+        throw new Exception("Message invalid");
+    }
+
+    //testing durable queue logic
+    @RabbitListener(queues = {"classicQueueTestWithPersistence"})
+    public void consumeFromDurableQueue(UserDetailsDTO dto, Message message) throws Exception {
+        LOGGER.info(String.format("Received message -> %s", dto));
+        throw new Exception("Message invalid");
+    }
 
     //testing retry logic
     @RabbitListener(queues = {"${spring.rabbitmq.queueName}"} , containerFactory = "rabbitListenerContainerFactoryWithRetry")

@@ -1,6 +1,7 @@
 package com.message_broker.rabbitmq_producer.controller;
 
-import com.message_broker.rabbitmq_producer.RabbitMqProducer;
+import com.message_broker.rabbitmq_producer.producer.RabbitMqPersistentProducer;
+import com.message_broker.rabbitmq_producer.producer.RabbitMqProducer;
 import com.message_broker.rabbitmq_producer.dto.UserDetailsDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Description;
@@ -16,6 +17,9 @@ public class UserController {
 
     @Autowired
     public RabbitMqProducer rabbitMqProducer;
+
+    @Autowired
+    public RabbitMqPersistentProducer persistentProducer;
 
     @PostMapping("/user")
     @Description("Direct Exchange")
@@ -42,6 +46,20 @@ public class UserController {
     @Description("header Exchange")
     public ResponseEntity<String> sendUserInfoHeader(@RequestBody UserDetailsDTO userDetailsDTO){
         rabbitMqProducer.sendMesssage(userDetailsDTO);
+        return  ResponseEntity.ok("Message Sent");
+    }
+
+    @PostMapping("/user/durable")
+    @Description("Durable Queue")
+    public ResponseEntity<String> sendUserInfoToDurable(@RequestBody UserDetailsDTO userDetailsDTO){
+        persistentProducer.sendPersistedUserDetailstoDurableQueue(userDetailsDTO);
+        return  ResponseEntity.ok("Message Sent");
+    }
+
+    @PostMapping("/user/quorum")
+    @Description("Quorum Queue")
+    public ResponseEntity<String> sendUserInfoToQuorum(@RequestBody UserDetailsDTO userDetailsDTO){
+        persistentProducer.sendPersistedUserDetailstoQuorumQueue(userDetailsDTO);
         return  ResponseEntity.ok("Message Sent");
     }
 }

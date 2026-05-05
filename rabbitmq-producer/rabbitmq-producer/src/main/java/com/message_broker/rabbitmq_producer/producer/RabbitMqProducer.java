@@ -1,4 +1,4 @@
-package com.message_broker.rabbitmq_producer;
+package com.message_broker.rabbitmq_producer.producer;
 
 import com.message_broker.rabbitmq_producer.config.RabbitMqProducerConfig;
 import com.message_broker.rabbitmq_producer.dto.UserDetailsDTO;
