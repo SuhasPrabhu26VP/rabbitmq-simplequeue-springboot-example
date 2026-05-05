@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 
 @Configuration
 public class RabbitMqConsumerConfig {
@@ -33,8 +34,6 @@ public class RabbitMqConsumerConfig {
         return new Queue(queueName);
     }
 
-    @Autowired
-    private RabbitTemplate rabbitTemplate;
 
     @Bean
     public SimpleRabbitListenerContainerFactory listenerContainerFactory(ConnectionFactory connectionFactory){
@@ -74,8 +73,8 @@ public class RabbitMqConsumerConfig {
                 .maxRetries(5)
                 .messageKeyGenerator(message -> message.getMessageProperties().getMessageId()) //using message id to track during stateful only works when the producer sends message id if not it breaks
                 .backOffOptions(1000, 2.0, 10000) // initialInterval, multiplier, maxInterval
-                .recoverer(new RepublishMessageRecoverer(
-                        rabbitTemplate, "dlq_exchange", "routingkeyForDLQ")) // recover and redirect the message to DLQ
+                /*.recoverer(new RepublishMessageRecoverer(
+                        rabbitTemplate, "dlq_exchange", "routingkeyForDLQ")) */// recover and redirect the message to DLQ
                 .build());
         return factory;
     }

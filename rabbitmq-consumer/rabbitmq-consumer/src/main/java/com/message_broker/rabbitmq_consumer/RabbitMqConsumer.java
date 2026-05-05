@@ -25,24 +25,22 @@ public class RabbitMqConsumer {
     @RabbitListener(queues = {"quorumQueueTest"})
     public void consumeFromQuorumQueue(UserDetailsDTO dto, Message message) throws Exception {
         LOGGER.info(String.format("Received message -> %s", dto));
-        throw new Exception("Message invalid");
     }
 
     //testing durable queue logic
     @RabbitListener(queues = {"classicQueueTestWithPersistence"})
     public void consumeFromDurableQueue(UserDetailsDTO dto, Message message) throws Exception {
         LOGGER.info(String.format("Received message -> %s", dto));
-        throw new Exception("Message invalid");
     }
 
     //testing retry logic
-    @RabbitListener(queues = {"${spring.rabbitmq.queueName}"} , containerFactory = "rabbitListenerContainerFactoryWithRetry")
+ //   @RabbitListener(queues = {"${spring.rabbitmq.queueName}"} , containerFactory = "rabbitListenerContainerFactoryWithRetry")
     public void consume(UserDetailsDTO dto, Message message) throws Exception {
         LOGGER.info(String.format("Received message -> %s", dto));
         throw new Exception("Message invalid");
     }
 
-    @RabbitListener(queues = {"${spring.rabbitmq.queueName}"}, containerFactory = "listenerContainerFactory")
+ //   @RabbitListener(queues = {"${spring.rabbitmq.queueName}"}, containerFactory = "listenerContainerFactory")
     public void consume(UserDetailsDTO userDetailsDTO, Message message, Channel channel) throws Exception {
         long deliveryTag = message.getMessageProperties().getDeliveryTag();
         long now = System.currentTimeMillis();
