@@ -89,7 +89,7 @@ public class RabbitMqStreamsConfig {
             @Qualifier("streamEnvironment") Environment streamEnvironment) {
 
         RabbitStreamTemplate template = new RabbitStreamTemplate(
-                streamEnvironment, "userSuperStream");
+                streamEnvironment, "userSuperStreamWithRoutingKey");
 
         template.setSuperStreamRouting(message ->
                 message.getApplicationProperties().get("routingKey").toString());
