@@ -1,25 +1,28 @@
-version: "5.1"
 services:
   haproxy:
     image: haproxy:3.2
     container_name: haproxy_load_balancer
     ports:
-      - "5672:5672" ##RABBIT MQ CLASSIC
-      - "5552:5552" ##RABBIT MQ STREAMS
-      - "15672:15672" ##RABBIT MQ UI MNGMT
+      - "5672:5672"
+      - "5552:5552"
+      - "15672:15672"
     volumes:
       - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
     networks:
       - rabbitmq-cluster
     depends_on:
-      - rabbitmq1
-      - rabbitmq2
-      - rabbitmq3
+      rabbitmq1:
+        condition: service_healthy
+      rabbitmq2:
+        condition: service_healthy
+      rabbitmq3:
+        condition: service_healthy
     deploy:
       resources:
         limits:
           cpus: '1'
           memory: 256M
+    restart: on-failure
 
   rabbitmq1:
     image: rabbitmq:4-management
@@ -29,11 +32,17 @@ services:
       - RABBITMQ_NODENAME=rabbitmq1
     networks:
       - rabbitmq-cluster
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     deploy:
       resources:
         limits:
           cpus: '1'
-          memory: 256M  
+          memory: 256M
 
   rabbitmq2:
     image: rabbitmq:4-management
@@ -44,12 +53,19 @@ services:
     networks:
       - rabbitmq-cluster
     depends_on:
-      - rabbitmq1
+      rabbitmq1:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     deploy:
       resources:
         limits:
           cpus: '1'
-          memory: 256M  
+          memory: 256M
 
   rabbitmq3:
     image: rabbitmq:4-management
@@ -60,12 +76,19 @@ services:
     networks:
       - rabbitmq-cluster
     depends_on:
-      - rabbitmq1
+      rabbitmq1:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     deploy:
       resources:
         limits:
           cpus: '1'
-          memory: 256M  
+          memory: 256M
 
 networks:
   rabbitmq-cluster:

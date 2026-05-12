@@ -17,20 +17,17 @@ public class ServerSideOffsetConsumer {
 
     private Environment streamEnvironment;
 
-    private Consumer consumer;
 
     private ObjectMapper mapper;
 
-    public ServerSideOffsetConsumer(Environment streamEnvironment,Consumer consumer, ObjectMapper mapper) {
+    public ServerSideOffsetConsumer(Environment streamEnvironment) {
         this.streamEnvironment = streamEnvironment;
-        this.consumer = consumer;
-        this.mapper = mapper;
     }
 
 
     @PostConstruct
     public void start() {
-        this.consumer = streamEnvironment.consumerBuilder()
+       streamEnvironment.consumerBuilder()
                 .stream("userstream")
                 .name("user-consumer-group")
                 .offset(OffsetSpecification.first())
@@ -53,8 +50,4 @@ public class ServerSideOffsetConsumer {
                 .build();
     }
 
-    @PreDestroy
-    public void stop() {
-        if (consumer != null) consumer.close();
-    }
 }

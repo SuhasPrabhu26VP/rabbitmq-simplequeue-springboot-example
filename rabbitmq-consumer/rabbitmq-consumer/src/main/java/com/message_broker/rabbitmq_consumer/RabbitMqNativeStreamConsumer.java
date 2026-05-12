@@ -23,10 +23,10 @@ public class RabbitMqNativeStreamConsumer {
     @PostConstruct
     public void start(){
         streamEnvironment.consumerBuilder()
-                .stream("userStream")
+                .stream("userstream")
                 .offset(OffsetSpecification.first())
                 .messageHandler((context, message) -> {
-                    UserDetailsDTO userDetailsDTO = new ObjectMapper().convertValue(message.getBodyAsBinary(),UserDetailsDTO.class);
+                    UserDetailsDTO userDetailsDTO = new ObjectMapper().readValue(message.getBodyAsBinary(),UserDetailsDTO.class);
                     LOGGER.info("received message from stream {}",userDetailsDTO);
                 }).build();
     }

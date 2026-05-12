@@ -3,6 +3,8 @@ package com.message_broker.rabbitmq_producer.config;
 import com.rabbitmq.stream.ByteCapacity;
 import com.rabbitmq.stream.Environment;
 
+import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.rabbit.stream.config.SuperStream;
@@ -18,6 +20,7 @@ public class RabbitMqStreamsConfig {
      * Streams Environment and port
      * */
     @Bean
+    @Qualifier("streamEnvironment")
     public Environment streamEnvironment(){
         return Environment.builder()
                 .host("localhost")
@@ -45,16 +48,16 @@ public class RabbitMqStreamsConfig {
      * Stream Admin to create streams
      * */
     @Bean
-    StreamAdmin streamAdmin(final Environment env){
-        return  new StreamAdmin(env,sc->{
+    StreamAdmin streamAdmin(@Qualifier("streamEnvironment") final Environment streamEnvironment){
+        return  new StreamAdmin(streamEnvironment,sc->{
             sc.stream("userstream")
                     .maxAge(Duration.ofDays(2))
                     .maxLengthBytes(ByteCapacity.B(10L*1024*1024*1024))
                     .create();
-            sc.stream("orderstream")
+           /* sc.stream("orderstream")
                     .maxAge(Duration.ofDays(7))
                     .maxLengthBytes(ByteCapacity.B(10L * 1024 * 1024 * 1024))
-                    .create();
+                    .create();*/
         });
     }
 
@@ -74,22 +77,53 @@ public class RabbitMqStreamsConfig {
     *
     * use created stream in a stream template
     * */
-    @Bean
+    @Bean("userStreamTemplate")
     public RabbitStreamTemplate streamTemplate(Environment streamEnvironment) {
-        return new RabbitStreamTemplate(streamEnvironment, "userstream");
+        RabbitStreamTemplate template = new RabbitStreamTemplate(streamEnvironment, "userstream");
+        template.setMessageConverter(new JacksonJsonMessageConverter());
+        return template;
     }
 
-    @Bean
+    @Bean("userSuperStreamTemplate")
+    public RabbitStreamTemplate userSuperStreamTemplate(
+            @Qualifier("streamEnvironment") Environment streamEnvironment) {
+
+        RabbitStreamTemplate template = new RabbitStreamTemplate(
+                streamEnvironment, "userSuperStream");
+
+        template.setSuperStreamRouting(message ->
+                message.getApplicationProperties().get("routingKey").toString());
+
+        template.setMessageConverter(new JacksonJsonMessageConverter());
+        return template;
+    }
+
+    @Bean("userSuperStreamWithHashTemplate")
+    public RabbitStreamTemplate userSuperStreamWithHashTemplate(
+            @Qualifier("streamEnvironment") Environment streamEnvironment) {
+
+        RabbitStreamTemplate template = new RabbitStreamTemplate(
+                streamEnvironment, "userSuperStreamWithHash");
+
+
+        template.setSuperStreamRouting(message ->
+                message.getApplicationProperties().get("userId").toString());
+
+        template.setMessageConverter(new JacksonJsonMessageConverter());
+        return template;
+    }
+
+/*    @Bean
     public RabbitStreamTemplate orderStreamTemplate(Environment streamEnvironment) {
         return new RabbitStreamTemplate(streamEnvironment, "orderstream");
-    }
+    }*/
 
-    @Bean
+/*    @Bean
     SuperStream superStream() {
         return new SuperStream("my.super.stream", 3);
-    }
+    }*/
 
-    @Bean
+   /* @Bean
     public RabbitStreamTemplate superStreamTemplate(Environment env) {
         RabbitStreamTemplate template = new RabbitStreamTemplate(
                 env, "my.super.stream"
@@ -103,6 +137,6 @@ public class RabbitMqStreamsConfig {
         );
 
         return template;
-    }
+    }*/
 
 }

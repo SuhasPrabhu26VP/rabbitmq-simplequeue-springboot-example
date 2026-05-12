@@ -1,5 +1,6 @@
 package com.message_broker.rabbitmq_consumer;
 
+import com.message_broker.rabbitmq_consumer.dto.UserDetailsDTO;
 import com.rabbitmq.stream.Consumer;
 import com.rabbitmq.stream.Environment;
 import com.rabbitmq.stream.OffsetSpecification;
@@ -8,6 +9,7 @@ import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -21,6 +23,7 @@ public class TimestampOffsetConsumer {
 
     private final Environment streamEnvironment;
     private Consumer consumer;
+    private ObjectMapper objectMapper;
 
     public TimestampOffsetConsumer(Environment streamEnvironment) {
         this.streamEnvironment = streamEnvironment;
@@ -36,7 +39,7 @@ public class TimestampOffsetConsumer {
                 .offset(OffsetSpecification.timestamp(minutesAgo))
                 .messageHandler((context, message) -> {
                     try {
-                        String payload = new String(message.getBodyAsBinary());
+                        UserDetailsDTO payload = objectMapper.readValue(message.getBodyAsBinary(), UserDetailsDTO.class);
 
                         LOGGER.info("Offset: {} | Payload: {}", context.offset(), payload);
 
