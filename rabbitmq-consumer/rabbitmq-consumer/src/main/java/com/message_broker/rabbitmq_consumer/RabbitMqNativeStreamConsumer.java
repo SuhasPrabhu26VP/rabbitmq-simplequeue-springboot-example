@@ -20,7 +20,7 @@ public class RabbitMqNativeStreamConsumer {
         this.streamEnvironment = streamEnvironment;
     }
 
-    @PostConstruct
+
     public void start(){
         streamEnvironment.consumerBuilder()
                 .stream("userstream")

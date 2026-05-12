@@ -9,18 +9,21 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
 @Component
-public class RabbitMqNativeSuperStreamConsumerWIthFilter {
-    private static final Logger LOGGER = LoggerFactory.getLogger(RabbitMqNativeSuperStreamConsumerWIthFilter.class);
+public class RabbitMqNativeSuperStreamConsumerWithHashAndFilter {
+    private static final Logger LOGGER = LoggerFactory.getLogger(RabbitMqNativeSuperStreamConsumerWithHashAndFilter.class);
 
     private final Environment streamEnvironment;
     private Consumer consumer;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
-    public RabbitMqNativeSuperStreamConsumerWIthFilter(Environment streamEnvironment) {
+    public RabbitMqNativeSuperStreamConsumerWithHashAndFilter(Environment streamEnvironment) {
         this.streamEnvironment = streamEnvironment;
     }
 
@@ -28,7 +31,7 @@ public class RabbitMqNativeSuperStreamConsumerWIthFilter {
     @PostConstruct
     public void start() {
         this.consumer = streamEnvironment.consumerBuilder()
-                .superStream("userSuperStream")
+                .superStream("userSuperStreamWithHash")
                 .singleActiveConsumer()
                 .name("userSuperStream-consumer-group")
                 .filter()
